@@ -4,6 +4,7 @@ import com.gab.products_requester.domain.request.Request;
 import com.gab.products_requester.domain.response.ProductDTO;
 import com.gab.products_requester.domain.response.ResponseFromAPI;
 import com.gab.products_requester.domain.response.ResponseListFromAPI;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,9 +45,18 @@ public class RequestService {
             throw new NotFoundException("Product not found");
         }
 
+        if (responseFromAPI.responseObject().amount() - data.quantity() < 0) {
+            throw new BadRequestException("Out of stock");
+        }
+
         this.addProduct(responseFromAPI.responseObject());
 
+        restTemplate.put(URL + "/" + data.productId(), updateProductStock(responseFromAPI.responseObject(), data.quantity()));
         return responseFromAPI;
+    }
+
+    public ProductDTO updateProductStock(ProductDTO productDTO, int quantity) {
+        return new ProductDTO(null, productDTO.name(), productDTO.description(), productDTO.amount() - quantity, productDTO.price());
     }
 
     public void removeProduct(String id) {
